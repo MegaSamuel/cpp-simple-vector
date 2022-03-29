@@ -38,7 +38,6 @@ public:
     // Создаёт вектор из size элементов, инициализированных значением по умолчанию
     explicit SimpleVector(size_t size) {
         ArrayPtr<Type> tmp_vector(size);
-        //std::fill(tmp_vector.Get(), tmp_vector.Get()+size, Type());
         std::generate(tmp_vector.Get(), tmp_vector.Get()+size, [] () mutable { return std::move(Type()); });
         m_vector.swap(tmp_vector);
         m_size = size;
@@ -58,11 +57,7 @@ public:
     SimpleVector(std::initializer_list<Type> init) {
         auto size = init.size();
         ArrayPtr<Type> tmp_vector(size);
-        int ind = 0;
-        for(auto it = init.begin(); it != init.end(); it++) {
-            *(tmp_vector.Get()+ind) = *it;
-            ++ind;
-        }
+        std::copy(init.begin(), init.end(), tmp_vector.Get());
         m_vector.swap(tmp_vector);
         m_size = size;
         m_capacity = size;
@@ -129,11 +124,13 @@ public:
 
     // Возвращает ссылку на элемент с индексом index
     Type& operator[](size_t index) noexcept {
+        assert(index < m_size);
         return *(begin()+index);
     }
 
     // Возвращает константную ссылку на элемент с индексом index
     const Type& operator[](size_t index) const noexcept {
+        assert(index < m_size);
         return *(begin()+index);
     }
 
@@ -256,6 +253,7 @@ public:
     // Если перед вставкой значения вектор был заполнен полностью,
     // вместимость вектора должна увеличиться вдвое, а для вектора вместимостью 0 стать равной 1
     Iterator Insert(ConstIterator pos, const Type& value) {
+        assert(pos >= begin() && pos <= end());
         // прежний размер
         size_t prev_size = m_size;
         // расстояние от begin до pos
@@ -275,6 +273,7 @@ public:
 
     // Перемещает значение value в позицию pos.
     Iterator Insert(ConstIterator pos, Type&& value) {
+        assert(pos >= begin() && pos <= end());
         // прежний размер
         size_t prev_size = m_size;
         // расстояние от begin до pos
@@ -294,11 +293,14 @@ public:
 
     // "Удаляет" последний элемент вектора. Вектор не должен быть пустым
     void PopBack() noexcept {
-        --m_size;
+        if(0 != m_size) {
+            --m_size;
+        }
     }
 
     // Удаляет элемент вектора в указанной позиции
     Iterator Erase(ConstIterator pos) {
+        assert(pos >= begin() && pos < end());
         Iterator pos_copy = const_cast<Iterator>(pos);
         for(Iterator it = std::next(const_cast<Iterator>(pos), 1); it != end(); it++) {
             std::swap(*pos_copy, *it);
